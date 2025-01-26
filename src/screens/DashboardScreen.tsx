@@ -7,14 +7,19 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import {emiDataStore} from '../data/emiData';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import {emisCollection} from '../config/firebase';
+import {colors} from '../theme/colors';
 import type {RootTabScreenProps} from '../types/navigation';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import type {RootTabParamList} from '../types/navigation';
+
+const {width} = Dimensions.get('window');
 
 const DashboardScreen = () => {
   const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
@@ -41,127 +46,125 @@ const DashboardScreen = () => {
             }
           });
 
-          const newUpcomingEMIs = emiDataStore.getUpcomingEMIs() || [];
-          const newTotalMonthlyEMI = emiDataStore.getTotalMonthlyEMI() || 0;
-
-          setUpcomingEMIs(newUpcomingEMIs);
-          setTotalMonthlyEMI(newTotalMonthlyEMI);
+          setUpcomingEMIs(emiDataStore.getUpcomingEMIs());
+          setTotalMonthlyEMI(emiDataStore.getTotalMonthlyEMI());
+          setLoading(false);
         } catch (error) {
-          console.error('Error processing EMI updates:', error);
-          setUpcomingEMIs([]);
-          setTotalMonthlyEMI(0);
-        } finally {
+          console.error('Error processing snapshot:', error);
           setLoading(false);
         }
       },
       error => {
-        console.error('Error listening to EMIs:', error);
+        console.error('Error fetching EMIs:', error);
         setLoading(false);
-        setUpcomingEMIs([]);
-        setTotalMonthlyEMI(0);
       },
     );
 
     return () => unsubscribe();
   }, []);
 
+  const handleAddEMI = () => {
+    navigation.navigate('AddEMI');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E1F28" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
+      <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good evening</Text>
-            <Text style={styles.userName}>Alex</Text>
+            <Text style={styles.greeting}>Welcome back 👋</Text>
+            <Text style={styles.name}>John Doe</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('AddEMI' as never)}>
-            <Icon name="plus-circle-outline" size={28} color="#fff" />
+          <TouchableOpacity style={styles.profileButton}>
+            <Icon name="account" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Total EMI Card */}
-      <View style={styles.totalEmiCard}>
-        <View style={styles.totalEmiContent}>
-          <Text style={styles.totalEmiLabel}>Total Monthly EMI</Text>
-          <Text style={styles.totalEmiAmount}>
-            ₹{totalMonthlyEMI.toLocaleString('en-IN')}
-          </Text>
-          <View style={styles.emiStats}>
-            <View style={styles.emiStat}>
-              <Text style={styles.emiStatLabel}>Active EMIs</Text>
-              <Text style={styles.emiStatValue}>{upcomingEMIs.length}</Text>
+        {/* Total EMI Card */}
+        <LinearGradient
+          colors={colors.gradient.primary}
+          style={styles.totalEmiCard}>
+          <View style={styles.totalEmiContent}>
+            <Text style={styles.totalEmiLabel}>Total Monthly EMIs</Text>
+            <Text style={styles.totalEmiAmount}>₹{totalMonthlyEMI}</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Icon name="arrow-up" size={20} color={colors.success} />
+                <Text style={styles.statText}>Active EMIs</Text>
+                <Text style={styles.statValue}>{upcomingEMIs.length}</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.statItem}>
+                <Icon name="check-circle" size={20} color={colors.white} />
+                <Text style={styles.statText}>Completed</Text>
+                <Text style={styles.statValue}>
+                  {emiDataStore.getCompletedEMIs().length}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      </View>
+        </LinearGradient>
 
-      {/* EMI List */}
-      <ScrollView style={styles.emiList}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming EMIs</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('All EMIs')}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
-        </View>
-
-        {upcomingEMIs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="bank-off" size={48} color="#8E8E93" />
-            <Text style={styles.emptyStateText}>No upcoming EMIs</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => navigation.navigate('AddEMI' as never)}>
-              <Text style={styles.addButtonText}>Add New EMI</Text>
+        {/* Upcoming EMIs */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Upcoming EMIs</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('All EMIs')}>
+              <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          upcomingEMIs.map(emi => (
-            <TouchableOpacity
-              key={emi.id}
-              onPress={() =>
-                navigation.navigate(
-                  'EMIDetails' as never,
-                  {emiId: emi.id} as never,
-                )
-              }
-              style={styles.emiCard}>
-              <View style={styles.cardIcon}>
-                <Icon name="bank" size={24} color="#fff" />
-              </View>
-              <View style={styles.emiInfo}>
-                <View style={styles.emiDetails}>
-                  <Text style={styles.emiName}>{emi.name}</Text>
-                  <Text style={styles.emiDate}>
-                    Next:{' '}
-                    {new Date(emi.nextPaymentDate).toLocaleDateString('en-IN')}
-                  </Text>
-                </View>
-                <View style={styles.emiAmount}>
-                  <Text style={styles.amount}>
-                    ₹{emi.emiAmount.toLocaleString('en-IN')}
-                  </Text>
-                  <Text style={styles.emiProgress}>
-                    EMI {emi.currentEMI + 1} of {emi.tenure}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+
+          {upcomingEMIs.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Icon name="playlist-plus" size={48} color={colors.text.tertiary} />
+              <Text style={styles.emptyStateText}>No upcoming EMIs</Text>
+            </View>
+          ) : (
+            <View style={styles.emiList}>
+              {upcomingEMIs.slice(0, 3).map(emi => (
+                <TouchableOpacity
+                  key={emi.id}
+                  style={styles.emiCard}
+                  onPress={() => navigation.navigate('EMIDetails', {emiId: emi.id})}>
+                  <View style={styles.emiIcon}>
+                    <Icon
+                      name={emi.type === 'home' ? 'home' : 'car'}
+                      size={24}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <View style={styles.emiInfo}>
+                    <Text style={styles.emiTitle}>{emi.name}</Text>
+                    <Text style={styles.emiDate}>
+                      Due on {new Date(emi.nextPaymentDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text style={styles.emiAmount}>₹{emi.monthlyPayment}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* Add EMI Button */}
+      <TouchableOpacity style={styles.addButton} onPress={handleAddEMI}>
+        <LinearGradient
+          colors={colors.gradient.success}
+          style={styles.addButtonGradient}>
+          <Icon name="plus" size={24} color={colors.white} />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -169,164 +172,180 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E1F28',
+    backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#1E1F28',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#2A2C36',
-    padding: 20,
-    paddingTop: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  headerTop: {
+  greeting: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.card.shadow,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  totalEmiCard: {
+    margin: 20,
+    borderRadius: 24,
+    padding: 24,
+  },
+  totalEmiContent: {
+    width: '100%',
+  },
+  totalEmiLabel: {
+    fontSize: 14,
+    color: colors.white,
+    opacity: 0.8,
+    marginBottom: 8,
+  },
+  totalEmiAmount: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: 24,
+  },
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  greeting: {
-    color: '#8E8E93',
-    fontSize: 16,
-  },
-  userName: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  totalEmiCard: {
-    backgroundColor: '#2A2C36',
-    marginHorizontal: 20,
-    marginTop: -20,
-    borderRadius: 16,
-    padding: 20,
-    elevation: 4,
-  },
-  totalEmiContent: {
-    alignItems: 'center',
-  },
-  totalEmiLabel: {
-    color: '#8E8E93',
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  totalEmiAmount: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  emiStats: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  emiStat: {
-    alignItems: 'center',
-  },
-  emiStatLabel: {
-    color: '#8E8E93',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  emiStatValue: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  emiList: {
+  statItem: {
     flex: 1,
-    marginTop: 20,
+    alignItems: 'center',
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.white,
+    opacity: 0.2,
+  },
+  statText: {
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.8,
+    marginVertical: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  section: {
+    padding: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
-    color: '#fff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+    color: colors.text.primary,
   },
   seeAll: {
-    color: '#007AFF',
-    fontSize: 16,
+    fontSize: 14,
+    color: colors.primary,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    marginTop: 40,
+    justifyContent: 'center',
+    padding: 40,
   },
   emptyStateText: {
-    color: '#8E8E93',
-    fontSize: 18,
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
+    marginTop: 12,
     fontSize: 16,
-    fontWeight: '600',
+    color: colors.text.tertiary,
+  },
+  emiList: {
+    gap: 12,
   },
   emiCard: {
-    backgroundColor: '#2A2C36',
-    borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    padding: 16,
     flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    shadowColor: colors.card.shadow,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  cardIcon: {
+  emiIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   emiInfo: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginLeft: 12,
   },
-  emiDetails: {
-    flex: 1,
-    marginRight: 16,
-  },
-  emiName: {
-    color: '#fff',
-    fontSize: 18,
+  emiTitle: {
+    fontSize: 16,
     fontWeight: '600',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   emiDate: {
-    color: '#8E8E93',
-    fontSize: 14,
+    fontSize: 12,
+    color: colors.text.secondary,
   },
   emiAmount: {
-    alignItems: 'flex-end',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
   },
-  amount: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+  addButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
   },
-  emiProgress: {
-    color: '#8E8E93',
-    fontSize: 14,
+  addButtonGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.success,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
 
