@@ -1,4 +1,11 @@
-import {format, addMonths, parseISO, differenceInMonths, isAfter, isSameDay} from 'date-fns';
+import {
+  format,
+  addMonths,
+  parseISO,
+  differenceInMonths,
+  isAfter,
+  isSameDay,
+} from 'date-fns';
 import {emisCollection} from '../config/firebase';
 
 export interface EMI {
@@ -49,7 +56,7 @@ class EMIDataStore {
           emiAmount: Number(data.emiAmount) || 0,
           startDate: data.startDate || new Date().toISOString().split('T')[0],
           tenure: Number(data.tenure) || 0,
-          interestRate: Number(data.interestRate) || 0
+          interestRate: Number(data.interestRate) || 0,
         };
       });
       this.initialized = true;
@@ -68,9 +75,9 @@ class EMIDataStore {
         totalAmount: Number(newEmi.totalAmount) || 0,
         emiAmount: Number(newEmi.emiAmount) || 0,
         tenure: Number(newEmi.tenure) || 0,
-        interestRate: Number(newEmi.interestRate) || 0
+        interestRate: Number(newEmi.interestRate) || 0,
       };
-      
+
       const docRef = await emisCollection.add(sanitizedEmi);
       const emi: EMI = {
         ...sanitizedEmi,
@@ -184,7 +191,7 @@ class EMIDataStore {
       if (isNaN(startDate.getTime())) {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
-      
+
       // Next EMI is currentEMI + 1 months after start date
       const nextPaymentDate = addMonths(startDate, currentEMI + 1);
       return format(nextPaymentDate, 'yyyy-MM-dd');
@@ -210,7 +217,7 @@ class EMIDataStore {
       if (isNaN(startDate.getTime())) {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
-      
+
       // Last EMI is (tenure - 1) months after start date since first payment starts after 1 month
       const lastPaymentDate = addMonths(startDate, emi.tenure - 1);
       return format(lastPaymentDate, 'yyyy-MM-dd');
@@ -233,7 +240,7 @@ class EMIDataStore {
 
       const today = new Date();
       const startDate = new Date(emi.startDate);
-      
+
       // Validate dates
       if (isNaN(startDate.getTime())) {
         throw new Error('Invalid start date for EMI: ' + emi.id);
@@ -278,7 +285,10 @@ class EMIDataStore {
     }
   }
 
-  async syncEMIStatus(emiId: string, newStatus: 'active' | 'completed'): Promise<void> {
+  async syncEMIStatus(
+    emiId: string,
+    newStatus: 'active' | 'completed',
+  ): Promise<void> {
     try {
       const emi = this.emis.find(e => e.id === emiId);
       if (emi) {
@@ -327,7 +337,10 @@ class EMIDataStore {
           );
         })
         .sort((a, b) => {
-          return new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime();
+          return (
+            new Date(a.nextPaymentDate).getTime() -
+            new Date(b.nextPaymentDate).getTime()
+          );
         });
     } catch (error) {
       console.error('Error getting upcoming EMIs:', error);
@@ -336,7 +349,64 @@ class EMIDataStore {
   }
 
   getTotalMonthlyEMI(): number {
-    return this.getActiveEMIs().reduce((total, emi) => total + emi.emiAmount, 0);
+    return this.getActiveEMIs().reduce(
+      (total, emi) => total + emi.emiAmount,
+      0,
+    );
+  }
+
+  getTotalEMIAmount(): number {
+    return this.getAllEMIs().reduce(
+      (total, emi) => total + emi.emiAmount * emi.tenure,
+      0,
+    );
+  }
+
+  getTotalPaidAmount(): number {
+    return this.getAllEMIs().reduce((total, emi) => total + emi.totalPaid, 0);
+  }
+
+  getCurrentMonthTotalEMI(): number {
+    try {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      return this.getActiveEMIs()
+        .filter(emi => {
+          const nextPaymentDate = new Date(emi.nextPaymentDate);
+          return (
+            nextPaymentDate.getMonth() === currentMonth &&
+            nextPaymentDate.getFullYear() === currentYear
+          );
+        })
+        .reduce((total, emi) => total + emi.emiAmount, 0);
+    } catch (error) {
+      console.error('Error calculating current month total EMI:', error);
+      return 0;
+    }
+  }
+
+  getCurrentMonthPaidAmount(): number {
+    try {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      return this.getActiveEMIs()
+        .filter(emi => {
+          const lastPaidDate = emi.lastPaidDate ? new Date(emi.lastPaidDate) : null;
+          return (
+            lastPaidDate &&
+            lastPaidDate.getMonth() === currentMonth &&
+            lastPaidDate.getFullYear() === currentYear
+          );
+        })
+        .reduce((total, emi) => total + emi.emiAmount, 0);
+    } catch (error) {
+      console.error('Error calculating current month paid amount:', error);
+      return 0;
+    }
   }
 }
 

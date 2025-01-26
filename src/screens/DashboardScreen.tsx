@@ -30,6 +30,32 @@ const DashboardScreen = () => {
   const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(
     emiDataStore.getTotalMonthlyEMI() || 0,
   );
+  const [currentMonthTotal, setCurrentMonthTotal] = useState(
+    emiDataStore.getCurrentMonthTotalEMI() || 0,
+  );
+  const [currentMonthPaid, setCurrentMonthPaid] = useState(
+    emiDataStore.getCurrentMonthPaidAmount() || 0,
+  );
+  const [totalEMIAmount, setTotalEMIAmount] = useState(
+    emiDataStore.getTotalEMIAmount() || 0,
+  );
+  const [totalPaidAmount, setTotalPaidAmount] = useState(
+    emiDataStore.getTotalPaidAmount() || 0,
+  );
+
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString('en-IN', {
+      maximumFractionDigits: 0,
+      style: 'currency',
+      currency: 'INR',
+    });
+  };
+
+  const calculateProgressWidth = () => {
+    if (currentMonthTotal === 0) return 0;
+    const percentage = (currentMonthPaid / currentMonthTotal) * 100;
+    return Math.min(100, Math.max(0, percentage));
+  };
 
   useEffect(() => {
     const unsubscribe = emisCollection.onSnapshot(
@@ -48,6 +74,10 @@ const DashboardScreen = () => {
 
           setUpcomingEMIs(emiDataStore.getUpcomingEMIs());
           setTotalMonthlyEMI(emiDataStore.getTotalMonthlyEMI());
+          setCurrentMonthTotal(emiDataStore.getCurrentMonthTotalEMI());
+          setCurrentMonthPaid(emiDataStore.getCurrentMonthPaidAmount());
+          setTotalEMIAmount(emiDataStore.getTotalEMIAmount());
+          setTotalPaidAmount(emiDataStore.getTotalPaidAmount());
           setLoading(false);
         } catch (error) {
           console.error('Error processing snapshot:', error);
@@ -78,7 +108,9 @@ const DashboardScreen = () => {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor={colors.background} barStyle="light-content" />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -99,8 +131,28 @@ const DashboardScreen = () => {
           end={{x: 1, y: 1}}
           style={styles.totalEmiCard}>
           <View style={styles.totalEmiContent}>
-            <Text style={styles.totalEmiLabel}>Total Monthly EMIs</Text>
-            <Text style={styles.totalEmiAmount}>₹{totalMonthlyEMI}</Text>
+            <Text style={styles.totalEmiLabel}>EMI Overview</Text>
+            <Text style={styles.totalEmiAmount}>
+              {formatAmount(totalMonthlyEMI)}/month
+            </Text>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {width: `${calculateProgressWidth()}%`},
+                  ]}
+                />
+              </View>
+              <View style={styles.progressLabels}>
+                <Text style={styles.progressLabel}>
+                  Paid: {formatAmount(currentMonthPaid)}
+                </Text>
+                <Text style={styles.progressLabel}>
+                  Due: {formatAmount(currentMonthTotal)}
+                </Text>
+              </View>
+            </View>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Icon name="arrow-up" size={20} color={colors.success} />
@@ -130,7 +182,11 @@ const DashboardScreen = () => {
 
           {upcomingEMIs.length === 0 ? (
             <View style={styles.emptyState}>
-              <Icon name="playlist-plus" size={48} color={colors.text.tertiary} />
+              <Icon
+                name="playlist-plus"
+                size={48}
+                color={colors.text.tertiary}
+              />
               <Text style={styles.emptyStateText}>No upcoming EMIs</Text>
             </View>
           ) : (
@@ -139,7 +195,9 @@ const DashboardScreen = () => {
                 <TouchableOpacity
                   key={emi.id}
                   style={styles.emiCard}
-                  onPress={() => navigation.navigate('EMIDetails', {emiId: emi.id})}>
+                  onPress={() =>
+                    navigation.navigate('EMIDetails', {emiId: emi.id})
+                  }>
                   <LinearGradient
                     colors={colors.gradient.card}
                     style={styles.emiIcon}>
@@ -152,7 +210,8 @@ const DashboardScreen = () => {
                   <View style={styles.emiInfo}>
                     <Text style={styles.emiTitle}>{emi.name}</Text>
                     <Text style={styles.emiDate}>
-                      EMI {emi.currentEMI + 1} of {emi.tenure} • Due {new Date(emi.nextPaymentDate).toLocaleDateString()}
+                      EMI {emi.currentEMI + 1} of {emi.tenure} • Due{' '}
+                      {new Date(emi.nextPaymentDate).toLocaleDateString()}
                     </Text>
                   </View>
                   <View style={styles.emiAmountContainer}>
@@ -363,6 +422,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  progressContainer: {
+    marginVertical: 10,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 5,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 4,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.9,
   },
 });
 
