@@ -307,9 +307,32 @@ class EMIDataStore {
   }
 
   getUpcomingEMIs(): EMIWithStatus[] {
-    return this.getActiveEMIs().sort((a, b) => {
-      return new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime();
-    });
+    try {
+      const today = new Date();
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      // If it's after 31st, show next month's EMIs
+      const targetMonth = currentDay > 31 ? currentMonth + 1 : currentMonth;
+      const targetYear = targetMonth === 12 ? currentYear + 1 : currentYear;
+      const targetDate = new Date(targetYear, targetMonth, 1);
+
+      return this.getActiveEMIs()
+        .filter(emi => {
+          const nextPaymentDate = new Date(emi.nextPaymentDate);
+          return (
+            nextPaymentDate.getMonth() === targetMonth &&
+            nextPaymentDate.getFullYear() === targetYear
+          );
+        })
+        .sort((a, b) => {
+          return new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime();
+        });
+    } catch (error) {
+      console.error('Error getting upcoming EMIs:', error);
+      return [];
+    }
   }
 
   getTotalMonthlyEMI(): number {
