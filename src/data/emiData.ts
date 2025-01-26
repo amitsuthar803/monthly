@@ -135,6 +135,11 @@ class EMIDataStore {
    */
   private calculateEMIsPaid(startDate: Date, today: Date): number {
     try {
+      // Validate dates
+      if (isNaN(startDate.getTime()) || isNaN(today.getTime())) {
+        throw new Error('Invalid date values');
+      }
+
       // If today is before start date, no EMIs paid
       if (isAfter(startDate, today)) {
         return 0;
@@ -174,7 +179,11 @@ class EMIDataStore {
         throw new Error('Start date is missing for EMI: ' + emi.id);
       }
 
-      const startDate = parseISO(emi.startDate);
+      // Parse and validate start date
+      const startDate = new Date(emi.startDate);
+      if (isNaN(startDate.getTime())) {
+        throw new Error('Invalid start date for EMI: ' + emi.id);
+      }
       
       // Next EMI is currentEMI + 1 months after start date
       const nextPaymentDate = addMonths(startDate, currentEMI + 1);
@@ -196,10 +205,14 @@ class EMIDataStore {
         throw new Error('Start date is missing for EMI: ' + emi.id);
       }
 
-      const startDate = parseISO(emi.startDate);
+      // Parse and validate start date
+      const startDate = new Date(emi.startDate);
+      if (isNaN(startDate.getTime())) {
+        throw new Error('Invalid start date for EMI: ' + emi.id);
+      }
       
-      // Last EMI is tenure months after start date
-      const lastPaymentDate = addMonths(startDate, emi.tenure);
+      // Last EMI is (tenure - 1) months after start date since first payment starts after 1 month
+      const lastPaymentDate = addMonths(startDate, emi.tenure - 1);
       return format(lastPaymentDate, 'yyyy-MM-dd');
     } catch (error) {
       console.error('Error calculating last payment date:', error);
@@ -214,17 +227,29 @@ class EMIDataStore {
    */
   getEMIWithStatus(emi: EMI): EMIWithStatus {
     try {
+      if (!emi.startDate) {
+        throw new Error('Start date is missing for EMI: ' + emi.id);
+      }
+
       const today = new Date();
-      const startDate = parseISO(emi.startDate);
+      const startDate = new Date(emi.startDate);
+      
+      // Validate dates
+      if (isNaN(startDate.getTime())) {
+        throw new Error('Invalid start date for EMI: ' + emi.id);
+      }
+
       const emisPaid = this.calculateEMIsPaid(startDate, today);
+      const tenure = Number(emi.tenure) || 0;
+      const emiAmount = Number(emi.emiAmount) || 0;
 
       // Ensure all calculations use numbers with fallbacks to 0
-      const currentEMI = Math.min(emisPaid, Number(emi.tenure) || 0);
-      const remainingEMIs = Math.max(0, (Number(emi.tenure) || 0) - currentEMI);
-      const totalPaid = currentEMI * (Number(emi.emiAmount) || 0);
+      const currentEMI = Math.min(emisPaid, tenure);
+      const remainingEMIs = Math.max(0, tenure - currentEMI);
+      const totalPaid = currentEMI * emiAmount;
       const nextPaymentDate = this.getNextPaymentDate(emi, currentEMI);
       const lastPaymentDate = this.getLastPaymentDate(emi);
-      const status = currentEMI >= emi.tenure ? 'completed' : 'active';
+      const status = currentEMI >= tenure ? 'completed' : 'active';
 
       // Sync status with database if it has changed
       this.syncEMIStatus(emi.id, status);
@@ -240,11 +265,12 @@ class EMIDataStore {
       };
     } catch (error) {
       console.error('Error calculating EMI status:', error);
+      // Return a safe fallback with the original EMI data
       return {
         ...emi,
         nextPaymentDate: format(new Date(), 'yyyy-MM-dd'),
         lastPaymentDate: format(new Date(), 'yyyy-MM-dd'),
-        remainingEMIs: 0,
+        remainingEMIs: Number(emi.tenure) || 0,
         currentEMI: 0,
         status: 'active',
         totalPaid: 0,

@@ -144,7 +144,7 @@ const DashboardScreen = () => {
                     colors={colors.gradient.card}
                     style={styles.emiIcon}>
                     <Icon
-                      name={emi.type === 'home' ? 'home' : 'car'}
+                      name="calendar-clock"
                       size={24}
                       color={colors.primary}
                     />
@@ -152,10 +152,13 @@ const DashboardScreen = () => {
                   <View style={styles.emiInfo}>
                     <Text style={styles.emiTitle}>{emi.name}</Text>
                     <Text style={styles.emiDate}>
-                      Due on {new Date(emi.nextPaymentDate).toLocaleDateString()}
+                      EMI {emi.currentEMI + 1} of {emi.tenure} • Due {new Date(emi.nextPaymentDate).toLocaleDateString()}
                     </Text>
                   </View>
-                  <Text style={styles.emiAmount}>₹{emi.monthlyPayment}</Text>
+                  <View style={styles.emiAmountContainer}>
+                    <Text style={styles.emiAmount}>₹{emi.emiAmount}</Text>
+                    <Text style={styles.emiAmountLabel}>to pay</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -331,10 +334,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
   },
+  emiAmountContainer: {
+    alignItems: 'flex-end',
+  },
+  emiAmountLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
   emiAmount: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontWeight: '600',
+    color: colors.text.primary,
   },
   addButton: {
     position: 'absolute',
