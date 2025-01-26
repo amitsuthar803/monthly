@@ -1,17 +1,17 @@
 export const colors = {
   primary: '#6C5DD3',
   secondary: '#8676FF',
-  background: '#F7F6FB',
+  background: '#1A1D1E',
   white: '#FFFFFF',
   black: '#1A1D1E',
   text: {
-    primary: '#1A1D1E',
-    secondary: '#6C727F',
-    tertiary: '#A7A9B7',
+    primary: '#FFFFFF',
+    secondary: '#A7A9B7',
+    tertiary: '#6C727F',
   },
   card: {
-    background: '#FFFFFF',
-    shadow: 'rgba(108, 93, 211, 0.1)',
+    background: '#2A2D2E',
+    shadow: 'rgba(0, 0, 0, 0.3)',
   },
   success: '#00B087',
   error: '#FF4B55',
@@ -19,5 +19,6 @@ export const colors = {
   gradient: {
     primary: ['#6C5DD3', '#8676FF'],
     success: ['#00B087', '#1FD1A5'],
+    card: ['#2A2D2E', '#232627'],
   },
 };

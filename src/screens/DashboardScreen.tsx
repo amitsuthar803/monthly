@@ -77,7 +77,7 @@ const DashboardScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+      <StatusBar backgroundColor={colors.background} barStyle="light-content" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -85,14 +85,18 @@ const DashboardScreen = () => {
             <Text style={styles.greeting}>Welcome back 👋</Text>
             <Text style={styles.name}>John Doe</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
+          <LinearGradient
+            colors={colors.gradient.card}
+            style={styles.profileButton}>
             <Icon name="account" size={24} color={colors.primary} />
-          </TouchableOpacity>
+          </LinearGradient>
         </View>
 
         {/* Total EMI Card */}
         <LinearGradient
           colors={colors.gradient.primary}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
           style={styles.totalEmiCard}>
           <View style={styles.totalEmiContent}>
             <Text style={styles.totalEmiLabel}>Total Monthly EMIs</Text>
@@ -136,13 +140,15 @@ const DashboardScreen = () => {
                   key={emi.id}
                   style={styles.emiCard}
                   onPress={() => navigation.navigate('EMIDetails', {emiId: emi.id})}>
-                  <View style={styles.emiIcon}>
+                  <LinearGradient
+                    colors={colors.gradient.card}
+                    style={styles.emiIcon}>
                     <Icon
                       name={emi.type === 'home' ? 'home' : 'car'}
                       size={24}
                       color={colors.primary}
                     />
-                  </View>
+                  </LinearGradient>
                   <View style={styles.emiInfo}>
                     <Text style={styles.emiTitle}>{emi.name}</Text>
                     <Text style={styles.emiDate}>
@@ -161,6 +167,8 @@ const DashboardScreen = () => {
       <TouchableOpacity style={styles.addButton} onPress={handleAddEMI}>
         <LinearGradient
           colors={colors.gradient.success}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
           style={styles.addButtonGradient}>
           <Icon name="plus" size={24} color={colors.white} />
         </LinearGradient>
@@ -205,12 +213,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.card.shadow,
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -295,11 +302,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card.background,
     borderRadius: 16,
     shadowColor: colors.card.shadow,
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -307,7 +314,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
