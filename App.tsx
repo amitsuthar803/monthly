@@ -6,113 +6,101 @@
  */
 
 import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DashboardScreen from './src/screens/DashboardScreen';
+import EMIDetailsScreen from './src/screens/EMIDetailsScreen';
+import AddEMIScreen from './src/screens/AddEMIScreen';
+import AllEMIsScreen from './src/screens/AllEMIsScreen';
+import CompletedEMIsScreen from './src/screens/CompletedEMIsScreen';
+import ActiveEMIsScreen from './src/screens/ActiveEMIsScreen';
+import type {RootStackParamList, RootTabParamList} from './src/types/navigation';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function TabNavigator() {
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <Tab.Navigator
+      screenOptions={{
+        tabBarStyle: {
+          backgroundColor: '#2A2C36',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
+        headerStyle: {
+          backgroundColor: '#1E1F28',
+        },
+        headerTintColor: '#fff',
+      }}>
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <Icon name="view-dashboard" size={size} color={color} />
+          ),
+          headerShown: false,
+        }}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Tab.Screen
+        name="All EMIs"
+        component={AllEMIsScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <Icon name="format-list-bulleted" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Active"
+        component={ActiveEMIsScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <Icon name="clock-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Completed"
+        component={CompletedEMIsScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <Icon name="check-circle-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
-
-export default App;
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#1E1F28',
+          },
+          headerTintColor: '#fff',
+          contentStyle: {
+            backgroundColor: '#1E1F28',
+          },
+        }}>
+        <Stack.Screen
+          name="Main"
+          component={TabNavigator}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen name="EMIDetails" component={EMIDetailsScreen} />
+        <Stack.Screen name="AddEMI" component={AddEMIScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

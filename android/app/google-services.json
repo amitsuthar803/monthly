@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "146369426758",
+    "project_id": "monthly-a36ce",
+    "storage_bucket": "monthly-a36ce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146369426758:android:2a1f7c9f8b0b0b0b0b0b0b",
+        "android_client_info": {
+          "package_name": "com.monthly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQVbwFhCrboedDj86u1XR8I13hZni4E5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
