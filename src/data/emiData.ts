@@ -174,14 +174,18 @@ class EMIDataStore {
         return 0;
       }
 
-      // Calculate months between start date and today
+      // Calculate months since start date (including start month)
       const monthsSinceStart = differenceInMonths(today, startDate);
       
-      // Check if we've passed the EMI day in current month
-      const isAfterEMIDay = today.getDate() >= startDate.getDate();
+      // Get the date for this month's EMI
+      const thisMonthEMIDate = new Date(today.getFullYear(), today.getMonth(), startDate.getDate());
       
       // If we haven't reached EMI day in current month, one less EMI is paid
-      const emisPaid = isAfterEMIDay ? monthsSinceStart : monthsSinceStart - 1;
+      const isAfterEMIDay = today >= thisMonthEMIDate;
+      
+      // Start date counts as first EMI
+      // If today is after EMI day, count current month's EMI as paid
+      const emisPaid = isAfterEMIDay ? monthsSinceStart + 1 : monthsSinceStart;
 
       return Math.max(0, emisPaid);
     } catch (error) {
@@ -211,8 +215,8 @@ class EMIDataStore {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Calculate the next payment date by adding months to start date
-      let nextPaymentDate = addMonths(startDate, currentEMI + 1);
+      // Calculate next payment date (start date counts as first payment)
+      let nextPaymentDate = addMonths(startDate, currentEMI);
       nextPaymentDate.setHours(0, 0, 0, 0);
 
       // If next payment date is in the past, move it forward until it's in the future
@@ -244,7 +248,7 @@ class EMIDataStore {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
 
-      // Last EMI is (tenure - 1) months after start date since first payment starts after 1 month
+      // Last EMI is (tenure - 1) months after start date since start date is first EMI
       const lastPaymentDate = addMonths(startDate, emi.tenure - 1);
       return format(lastPaymentDate, 'yyyy-MM-dd');
     } catch (error) {
