@@ -17,7 +17,11 @@ import EditEMIScreen from './src/screens/EditEMIScreen';
 import AllEMIsScreen from './src/screens/AllEMIsScreen';
 import CompletedEMIsScreen from './src/screens/CompletedEMIsScreen';
 import ActiveEMIsScreen from './src/screens/ActiveEMIsScreen';
-import type {RootStackParamList, RootTabParamList} from './src/types/navigation';
+import AboutScreen from './src/screens/AboutScreen';
+import type {
+  RootStackParamList,
+  RootTabParamList,
+} from './src/types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -50,6 +54,7 @@ function TabNavigator() {
           headerShown: false,
         }}
       />
+
       <Tab.Screen
         name="All EMIs"
         component={AllEMIsScreen}
@@ -75,6 +80,16 @@ function TabNavigator() {
           tabBarIcon: ({color, size}) => (
             <Icon name="check-circle-outline" size={size} color={color} />
           ),
+        }}
+      />
+      <Tab.Screen
+        name="About"
+        component={AboutScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <Icon name="information" size={size} color={color} />
+          ),
+          headerShown: false,
         }}
       />
     </Tab.Navigator>

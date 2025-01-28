@@ -10,9 +10,10 @@ export type RootStackParamList = {
 
 export type RootTabParamList = {
   Dashboard: undefined;
+  About: undefined;
   'All EMIs': undefined;
-  Active: undefined;
-  Completed: undefined;
+  'Completed EMIs': undefined;
+  'Active EMIs': undefined;
 };
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> =
