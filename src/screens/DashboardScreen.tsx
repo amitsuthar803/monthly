@@ -204,34 +204,54 @@ const DashboardScreen = () => {
                     onPress={() =>
                       navigation.navigate('EMIDetails', {emiId: emi.id})
                     }>
-                    <LinearGradient
-                      colors={colors.gradient.card}
-                      style={styles.emiIcon}>
-                      <Icon
-                        name="calendar-clock"
-                        size={24}
-                        color={colors.primary}
-                      />
-                    </LinearGradient>
+                    <View style={styles.emiHeader}>
+                      <LinearGradient
+                        colors={colors.gradient.card}
+                        style={styles.emiIcon}>
+                        <Icon
+                          name="calendar-clock"
+                          size={24}
+                          color={colors.primary}
+                        />
+                      </LinearGradient>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => navigation.navigate('EditEMI', {emiId: emi.id})}>
+                        <Icon name="pencil" size={20} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                    
                     <View style={styles.emiInfo}>
                       <Text style={styles.emiTitle}>{emi.name}</Text>
                       <Text style={styles.emiDate}>
                         EMI {emi.currentEMI + 1} of {emi.tenure} • Due{' '}
                         {new Date(emi.nextPaymentDate).toLocaleDateString()}
                       </Text>
+                      
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <View 
+                            style={[
+                              styles.progressFill,
+                              { width: `${(emi.currentEMI / emi.tenure) * 100}%` }
+                            ]} 
+                          />
+                        </View>
+                        <Text style={styles.progressText}>
+                          {Math.round((emi.currentEMI / emi.tenure) * 100)}% Complete
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
-                  <View style={styles.emiActions}>
-                    <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={() =>
-                        navigation.navigate('EditEMI', {emiId: emi.id})
-                      }>
-                      <Icon name="pencil" size={20} color={colors.primary} />
-                    </TouchableOpacity>
+
+                  <View style={styles.emiFooter}>
                     <View style={styles.emiAmountContainer}>
                       <Text style={styles.emiAmount}>₹{emi.emiAmount}</Text>
-                      <Text style={styles.emiAmountLabel}>to pay</Text>
+                      <Text style={styles.emiAmountLabel}>Monthly Payment</Text>
+                    </View>
+                    <View style={styles.totalAmountContainer}>
+                      <Text style={styles.totalAmount}>₹{emi.totalAmount}</Text>
+                      <Text style={styles.totalAmountLabel}>Total Amount</Text>
                     </View>
                   </View>
                 </View>
@@ -378,71 +398,112 @@ const styles = StyleSheet.create({
   },
   emiCard: {
     backgroundColor: colors.card.background,
-    borderRadius: 16,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginVertical: 8,
     shadowColor: colors.card.shadow,
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
     overflow: 'hidden',
   },
   emiCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 16,
   },
-  emiActions: {
+  emiHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.card.border,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   emiIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emiInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  emiTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 4,
-  },
-  emiDate: {
-    fontSize: 12,
-    color: colors.text.secondary,
   },
   editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.card.background,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.card.backgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.card.border,
+    shadowColor: colors.card.shadow,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  emiInfo: {
+    marginTop: 8,
+  },
+  emiTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 6,
+  },
+  emiDate: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 16,
+  },
+  progressContainer: {
+    marginTop: 12,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: colors.card.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 13,
+    color: colors.text.tertiary,
+    marginBottom: 8,
+  },
+  emiFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: colors.card.backgroundLight,
+    borderTopWidth: 1,
+    borderTopColor: colors.card.border,
   },
   emiAmountContainer: {
+    alignItems: 'flex-start',
+  },
+  totalAmountContainer: {
     alignItems: 'flex-end',
+  },
+  emiAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  totalAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
   emiAmountLabel: {
     fontSize: 12,
     color: colors.text.secondary,
-    marginTop: 2,
+    marginTop: 4,
   },
-  emiAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
+  totalAmountLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 4,
   },
   addButton: {
     position: 'absolute',
