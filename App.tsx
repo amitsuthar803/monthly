@@ -13,6 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardScreen from './src/screens/DashboardScreen';
 import EMIDetailsScreen from './src/screens/EMIDetailsScreen';
 import AddEMIScreen from './src/screens/AddEMIScreen';
+import EditEMIScreen from './src/screens/EditEMIScreen';
 import AllEMIsScreen from './src/screens/AllEMIsScreen';
 import CompletedEMIsScreen from './src/screens/CompletedEMIsScreen';
 import ActiveEMIsScreen from './src/screens/ActiveEMIsScreen';
@@ -100,6 +101,7 @@ export default function App() {
         />
         <Stack.Screen name="EMIDetails" component={EMIDetailsScreen} />
         <Stack.Screen name="AddEMI" component={AddEMIScreen} />
+        <Stack.Screen name="EditEMI" component={EditEMIScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -15,14 +15,20 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {emisCollection} from '../config/firebase';
 import {colors} from '../theme/colors';
-import type {RootTabScreenProps} from '../types/navigation';
+import type {RootStackParamList, RootTabParamList} from '../types/navigation';
+import type {CompositeNavigationProp} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
-import type {RootTabParamList} from '../types/navigation';
+
+type DashboardScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'Dashboard'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const {width} = Dimensions.get('window');
 
 const DashboardScreen = () => {
-  const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const navigation = useNavigation<DashboardScreenNavigationProp>();
   const [loading, setLoading] = useState(true);
   const [upcomingEMIs, setUpcomingEMIs] = useState(
     emiDataStore.getUpcomingEMIs() || [],
@@ -192,33 +198,43 @@ const DashboardScreen = () => {
           ) : (
             <View style={styles.emiList}>
               {upcomingEMIs.slice(0, 3).map(emi => (
-                <TouchableOpacity
-                  key={emi.id}
-                  style={styles.emiCard}
-                  onPress={() =>
-                    navigation.navigate('EMIDetails', {emiId: emi.id})
-                  }>
-                  <LinearGradient
-                    colors={colors.gradient.card}
-                    style={styles.emiIcon}>
-                    <Icon
-                      name="calendar-clock"
-                      size={24}
-                      color={colors.primary}
-                    />
-                  </LinearGradient>
-                  <View style={styles.emiInfo}>
-                    <Text style={styles.emiTitle}>{emi.name}</Text>
-                    <Text style={styles.emiDate}>
-                      EMI {emi.currentEMI + 1} of {emi.tenure} • Due{' '}
-                      {new Date(emi.nextPaymentDate).toLocaleDateString()}
-                    </Text>
+                <View key={emi.id} style={styles.emiCard}>
+                  <TouchableOpacity
+                    style={styles.emiCardContent}
+                    onPress={() =>
+                      navigation.navigate('EMIDetails', {emiId: emi.id})
+                    }>
+                    <LinearGradient
+                      colors={colors.gradient.card}
+                      style={styles.emiIcon}>
+                      <Icon
+                        name="calendar-clock"
+                        size={24}
+                        color={colors.primary}
+                      />
+                    </LinearGradient>
+                    <View style={styles.emiInfo}>
+                      <Text style={styles.emiTitle}>{emi.name}</Text>
+                      <Text style={styles.emiDate}>
+                        EMI {emi.currentEMI + 1} of {emi.tenure} • Due{' '}
+                        {new Date(emi.nextPaymentDate).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.emiActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() =>
+                        navigation.navigate('EditEMI', {emiId: emi.id})
+                      }>
+                      <Icon name="pencil" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <View style={styles.emiAmountContainer}>
+                      <Text style={styles.emiAmount}>₹{emi.emiAmount}</Text>
+                      <Text style={styles.emiAmountLabel}>to pay</Text>
+                    </View>
                   </View>
-                  <View style={styles.emiAmountContainer}>
-                    <Text style={styles.emiAmount}>₹{emi.emiAmount}</Text>
-                    <Text style={styles.emiAmountLabel}>to pay</Text>
-                  </View>
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
           )}
@@ -361,9 +377,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emiCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
     backgroundColor: colors.card.background,
     borderRadius: 16,
     shadowColor: colors.card.shadow,
@@ -371,6 +384,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    overflow: 'hidden',
+  },
+  emiCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  emiActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.card.border,
   },
   emiIcon: {
     width: 48,
@@ -392,6 +420,16 @@ const styles = StyleSheet.create({
   emiDate: {
     fontSize: 12,
     color: colors.text.secondary,
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.card.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.card.border,
   },
   emiAmountContainer: {
     alignItems: 'flex-end',

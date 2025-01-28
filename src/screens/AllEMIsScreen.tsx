@@ -5,14 +5,25 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import {emiDataStore} from '../data/emiData';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {emisCollection} from '../config/firebase';
+import {colors} from '../theme/colors';
+import type {CompositeNavigationProp} from '@react-navigation/native';
+import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import type {RootStackParamList, RootTabParamList} from '../types/navigation';
+
+type AllEMIsScreenNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'All EMIs'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const AllEMIsScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AllEMIsScreenNavigationProp>();
   const [allEMIs, setAllEMIs] = useState(emiDataStore.getAllEMIs());
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +56,7 @@ const AllEMIsScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading EMIs...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -54,11 +65,11 @@ const AllEMIsScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.emptyState}>
-          <Icon name="bank-off" size={48} color="#8E8E93" />
+          <Icon name="bank-off" size={48} color={colors.text.tertiary} />
           <Text style={styles.emptyStateText}>No EMIs found</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('AddEMI' as never)}>
+            onPress={() => navigation.navigate('AddEMI')}>
             <Text style={styles.addButtonText}>Add New EMI</Text>
           </TouchableOpacity>
         </View>
@@ -69,44 +80,50 @@ const AllEMIsScreen = () => {
   return (
     <ScrollView style={styles.container}>
       {allEMIs.map(emi => (
-        <TouchableOpacity
-          key={emi.id}
-          onPress={() =>
-            navigation.navigate('EMIDetails' as never, {emiId: emi.id} as never)
-          }
-          style={styles.emiCard}>
-          <View
-            style={[
-              styles.cardIcon,
-              emi.status === 'completed' && styles.completedIcon,
-            ]}>
-            <Icon
-              name={emi.status === 'completed' ? 'check-circle' : 'bank'}
-              size={24}
-              color="#fff"
-            />
-          </View>
-          <View style={styles.emiInfo}>
-            <View style={styles.emiDetails}>
-              <Text style={styles.emiName}>{emi.name}</Text>
-              <Text style={styles.emiDate}>
-                {emi.status === 'completed'
-                  ? `Completed on: ${new Date(
-                      emi.lastPaymentDate,
-                    ).toLocaleDateString()}`
-                  : `Next: ${new Date(
-                      emi.nextPaymentDate,
-                    ).toLocaleDateString()}`}
+        <View key={emi.id} style={styles.emiCard}>
+          <TouchableOpacity
+            style={styles.emiCardContent}
+            onPress={() => navigation.navigate('EMIDetails', {emiId: emi.id})}>
+            <View
+              style={[
+                styles.cardIcon,
+                emi.status === 'completed' && styles.completedIcon,
+              ]}>
+              <Icon
+                name={emi.status === 'completed' ? 'check-circle' : 'bank'}
+                size={24}
+                color="#fff"
+              />
+            </View>
+            <View style={styles.emiInfo}>
+              <View style={styles.emiDetails}>
+                <Text style={styles.emiName}>{emi.name}</Text>
+                <Text style={styles.emiDate}>
+                  {emi.status === 'completed'
+                    ? `Completed on: ${new Date(
+                        emi.lastPaymentDate,
+                      ).toLocaleDateString()}`
+                    : `Next: ${new Date(
+                        emi.nextPaymentDate,
+                      ).toLocaleDateString()}`}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.emiActions}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => navigation.navigate('EditEMI', {emiId: emi.id})}>
+              <Icon name="pencil" size={20} color={colors.primary} />
+            </TouchableOpacity>
+            <View style={styles.emiAmountContainer}>
+              <Text style={styles.emiAmount}>₹{emi.emiAmount}</Text>
+              <Text style={styles.emiAmountLabel}>
+                {emi.status === 'completed' ? 'paid' : 'to pay'}
               </Text>
             </View>
-            <View style={styles.emiAmount}>
-              <Text style={styles.amount}>₹{emi.emiAmount}</Text>
-              <Text style={styles.emiProgress}>
-                {emi.currentEMI}/{emi.tenure} EMIs
-              </Text>
-            </View>
           </View>
-        </TouchableOpacity>
+        </View>
       ))}
     </ScrollView>
   );
@@ -115,7 +132,7 @@ const AllEMIsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E1F28',
+    backgroundColor: colors.background,
   },
   emptyState: {
     flex: 1,
@@ -124,79 +141,96 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyStateText: {
-    color: '#8E8E93',
-    fontSize: 18,
-    marginTop: 16,
-    marginBottom: 24,
+    fontSize: 16,
+    color: colors.text.tertiary,
+    marginTop: 12,
   },
   addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    marginTop: 20,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
   },
   emiCard: {
-    backgroundColor: '#2A2C36',
+    backgroundColor: colors.card.background,
     borderRadius: 16,
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: colors.card.shadow,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  emiCardContent: {
     flexDirection: 'row',
+    padding: 16,
   },
   cardIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   completedIcon: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
   },
   emiInfo: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginLeft: 12,
   },
   emiDetails: {
     flex: 1,
-    marginRight: 16,
   },
   emiName: {
-    color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   emiDate: {
-    color: '#8E8E93',
-    fontSize: 14,
+    fontSize: 12,
+    color: colors.text.secondary,
   },
-  emiAmount: {
+  emiActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.card.border,
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.card.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.card.border,
+  },
+  emiAmountContainer: {
     alignItems: 'flex-end',
   },
-  amount: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emiProgress: {
-    color: '#8E8E93',
-    fontSize: 14,
-  },
-  loadingText: {
-    color: '#8E8E93',
+  emiAmount: {
     fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  emiAmountLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 2,
   },
 });
 

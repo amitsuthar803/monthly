@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Main: undefined;
   EMIDetails: {emiId: string};
   AddEMI: undefined;
+  EditEMI: {emiId: string};
 };
 
 export type RootTabParamList = {

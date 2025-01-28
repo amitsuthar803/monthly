@@ -111,6 +111,28 @@ class EMIDataStore {
     }
   }
 
+  async getEMIById(id: string): Promise<EMI | null> {
+    try {
+      const docRef = await emisCollection.doc(id).get();
+      if (!docRef.exists) {
+        return null;
+      }
+      const data = docRef.data();
+      return {
+        id: docRef.id,
+        name: data?.name || '',
+        totalAmount: Number(data?.totalAmount) || 0,
+        emiAmount: Number(data?.emiAmount) || 0,
+        startDate: data?.startDate || new Date().toISOString(),
+        tenure: Number(data?.tenure) || 0,
+        interestRate: Number(data?.interestRate) || 0,
+      };
+    } catch (error) {
+      console.error('Error getting EMI:', error);
+      throw error;
+    }
+  }
+
   // Local state management methods
   updateLocalEMI(emi: EMI): void {
     const index = this.emis.findIndex(e => e.id === emi.id);
