@@ -22,6 +22,7 @@ import type {
   RootStackParamList,
   RootTabParamList,
 } from './src/types/navigation';
+import {colors} from './src/theme/colors';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -37,7 +38,7 @@ function TabNavigator() {
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: '#8676FF',
         tabBarInactiveTintColor: '#8E8E93',
         headerStyle: {
           backgroundColor: '#1E1F28',
