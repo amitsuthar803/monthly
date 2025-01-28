@@ -409,15 +409,29 @@ class EMIDataStore {
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
 
-      return this.getActiveEMIs()
+      // Sum of EMIs from both active and completed EMIs for this month
+      const totalAmount = [...this.getActiveEMIs(), ...this.getCompletedEMIs()]
         .filter(emi => {
-          const nextPaymentDate = new Date(emi.nextPaymentDate);
-          return (
-            nextPaymentDate.getMonth() === currentMonth &&
-            nextPaymentDate.getFullYear() === currentYear
-          );
+          // For active EMIs, check next payment date
+          if (emi.status === 'active') {
+            const nextPaymentDate = new Date(emi.nextPaymentDate);
+            return (
+              nextPaymentDate.getMonth() === currentMonth &&
+              nextPaymentDate.getFullYear() === currentYear
+            );
+          }
+          // For completed EMIs, check last payment date
+          else {
+            const lastPaymentDate = new Date(emi.lastPaymentDate);
+            return (
+              lastPaymentDate.getMonth() === currentMonth &&
+              lastPaymentDate.getFullYear() === currentYear
+            );
+          }
         })
         .reduce((total, emi) => total + emi.emiAmount, 0);
+
+      return totalAmount;
     } catch (error) {
       console.error('Error calculating current month total EMI:', error);
       return 0;
@@ -430,18 +444,30 @@ class EMIDataStore {
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
 
-      return this.getActiveEMIs()
+      // Sum of paid EMIs from both active and completed EMIs
+      const paidAmount = [...this.getActiveEMIs(), ...this.getCompletedEMIs()]
         .filter(emi => {
-          const lastPaidDate = emi.lastPaidDate
-            ? new Date(emi.lastPaidDate)
-            : null;
-          return (
-            lastPaidDate &&
-            lastPaidDate.getMonth() === currentMonth &&
-            lastPaidDate.getFullYear() === currentYear
-          );
+          // For active EMIs, check if payment date has passed
+          if (emi.status === 'active') {
+            const nextPaymentDate = new Date(emi.nextPaymentDate);
+            return (
+              nextPaymentDate.getMonth() === currentMonth &&
+              nextPaymentDate.getFullYear() === currentYear &&
+              today.getDate() >= nextPaymentDate.getDate()
+            );
+          }
+          // For completed EMIs, include if last payment was this month
+          else {
+            const lastPaymentDate = new Date(emi.lastPaymentDate);
+            return (
+              lastPaymentDate.getMonth() === currentMonth &&
+              lastPaymentDate.getFullYear() === currentYear
+            );
+          }
         })
         .reduce((total, emi) => total + emi.emiAmount, 0);
+
+      return paidAmount;
     } catch (error) {
       console.error('Error calculating current month paid amount:', error);
       return 0;

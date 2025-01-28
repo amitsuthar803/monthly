@@ -63,6 +63,66 @@ const DashboardScreen = () => {
     return Math.min(100, Math.max(0, percentage));
   };
 
+  const renderEMIOverview = () => {
+    const totalMonthlyAmount = currentMonthTotal;
+    const paidAmount = currentMonthPaid;
+    const dueAmount = totalMonthlyAmount - paidAmount;
+
+    return (
+      <LinearGradient
+        colors={colors.gradient.primary}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.totalEmiCard}>
+        <View style={styles.totalEmiContent}>
+          <Text style={styles.totalEmiLabel}>EMI Overview</Text>
+          <Text style={styles.totalEmiAmount}>
+            {formatAmount(totalMonthlyAmount)}/month
+          </Text>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressTextContainer}>
+              <Text style={styles.progressText}>
+                Paid: {formatAmount(paidAmount)}
+              </Text>
+              <Text style={styles.progressText}>
+                Due: {formatAmount(dueAmount)}
+              </Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${
+                      totalMonthlyAmount > 0
+                        ? (paidAmount / totalMonthlyAmount) * 100
+                        : 0
+                    }%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Icon name="arrow-up" size={20} color={colors.success} />
+              <Text style={styles.statText}>Active EMIs</Text>
+              <Text style={styles.statValue}>{upcomingEMIs.length}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.statItem}>
+              <Icon name="check-circle" size={20} color={colors.white} />
+              <Text style={styles.statText}>Completed</Text>
+              <Text style={styles.statValue}>
+                {emiDataStore.getCompletedEMIs().length}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    );
+  };
+
   useEffect(() => {
     const unsubscribe = emisCollection.onSnapshot(
       snapshot => {
@@ -131,51 +191,7 @@ const DashboardScreen = () => {
         </View>
 
         {/* Total EMI Card */}
-        <LinearGradient
-          colors={colors.gradient.primary}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.totalEmiCard}>
-          <View style={styles.totalEmiContent}>
-            <Text style={styles.totalEmiLabel}>EMI Overview</Text>
-            <Text style={styles.totalEmiAmount}>
-              {formatAmount(totalMonthlyEMI)}/month
-            </Text>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {width: `${calculateProgressWidth()}%`},
-                  ]}
-                />
-              </View>
-              <View style={styles.progressLabels}>
-                <Text style={styles.progressLabel}>
-                  Paid: {formatAmount(currentMonthPaid)}
-                </Text>
-                <Text style={styles.progressLabel}>
-                  Due: {formatAmount(currentMonthTotal)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Icon name="arrow-up" size={20} color={colors.success} />
-                <Text style={styles.statText}>Active EMIs</Text>
-                <Text style={styles.statValue}>{upcomingEMIs.length}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.statItem}>
-                <Icon name="check-circle" size={20} color={colors.white} />
-                <Text style={styles.statText}>Completed</Text>
-                <Text style={styles.statValue}>
-                  {emiDataStore.getCompletedEMIs().length}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
+        {renderEMIOverview()}
 
         {/* Upcoming EMIs */}
         <View style={styles.section}>
@@ -546,6 +562,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.white,
     opacity: 0.9,
+  },
+  progressTextContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressText: {
+    fontSize: 14,
+    color: colors.white,
   },
 });
 
