@@ -174,20 +174,14 @@ class EMIDataStore {
         return 0;
       }
 
-      // Calculate months since start date
+      // Calculate months between start date and today
       const monthsSinceStart = differenceInMonths(today, startDate);
-
+      
       // Check if we've passed the EMI day in current month
       const isAfterEMIDay = today.getDate() >= startDate.getDate();
-
-      // For start date, first EMI is due next month
-      // So we start counting from 0 and add months passed
-      let emisPaid = monthsSinceStart;
-
-      // If we haven't reached EMI day in current month, subtract 1
-      if (!isAfterEMIDay) {
-        emisPaid--;
-      }
+      
+      // If we haven't reached EMI day in current month, one less EMI is paid
+      const emisPaid = isAfterEMIDay ? monthsSinceStart : monthsSinceStart - 1;
 
       return Math.max(0, emisPaid);
     } catch (error) {
@@ -214,8 +208,18 @@ class EMIDataStore {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
 
-      // Next EMI is currentEMI + 1 months after start date
-      const nextPaymentDate = addMonths(startDate, currentEMI + 1);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate the next payment date by adding months to start date
+      let nextPaymentDate = addMonths(startDate, currentEMI + 1);
+      nextPaymentDate.setHours(0, 0, 0, 0);
+
+      // If next payment date is in the past, move it forward until it's in the future
+      while (nextPaymentDate < today) {
+        nextPaymentDate = addMonths(nextPaymentDate, 1);
+      }
+
       return format(nextPaymentDate, 'yyyy-MM-dd');
     } catch (error) {
       console.error('Error calculating next payment date:', error);
@@ -341,21 +345,24 @@ class EMIDataStore {
   getUpcomingEMIs(): EMIWithStatus[] {
     try {
       const today = new Date();
-      const currentDay = today.getDate();
+      today.setHours(0, 0, 0, 0);
+      
+      // Get current month and year
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
-
-      // If it's after 31st, show next month's EMIs
-      const targetMonth = currentDay > 31 ? currentMonth + 1 : currentMonth;
-      const targetYear = targetMonth === 12 ? currentYear + 1 : currentYear;
-      const targetDate = new Date(targetYear, targetMonth, 1);
 
       return this.getActiveEMIs()
         .filter(emi => {
           const nextPaymentDate = new Date(emi.nextPaymentDate);
+          nextPaymentDate.setHours(0, 0, 0, 0);
+
+          // Only show EMIs that:
+          // 1. Are in the current month
+          // 2. Are due today or in future days of this month
           return (
-            nextPaymentDate.getMonth() === targetMonth &&
-            nextPaymentDate.getFullYear() === targetYear
+            nextPaymentDate.getMonth() === currentMonth &&
+            nextPaymentDate.getFullYear() === currentYear &&
+            nextPaymentDate >= today
           );
         })
         .sort((a, b) => {
@@ -417,7 +424,9 @@ class EMIDataStore {
 
       return this.getActiveEMIs()
         .filter(emi => {
-          const lastPaidDate = emi.lastPaidDate ? new Date(emi.lastPaidDate) : null;
+          const lastPaidDate = emi.lastPaidDate
+            ? new Date(emi.lastPaidDate)
+            : null;
           return (
             lastPaidDate &&
             lastPaidDate.getMonth() === currentMonth &&

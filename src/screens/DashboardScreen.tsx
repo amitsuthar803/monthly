@@ -72,7 +72,7 @@ const DashboardScreen = () => {
             const emi = {id: change.doc.id, ...emiData};
 
             if (change.type === 'added' || change.type === 'modified') {
-              emiDataStore.updateLocalEMI(emi);
+              emiDataStore.updateLocalEMI(emi); 
             } else if (change.type === 'removed') {
               emiDataStore.removeLocalEMI(emi.id);
             }
