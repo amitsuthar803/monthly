@@ -115,13 +115,13 @@ const DashboardScreen = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Welcome back 👋</Text>
-            <Text style={styles.name}>John Doe</Text>
+            <Text style={styles.name}>Amit Suthar</Text>
           </View>
-          <LinearGradient
+          {/* <LinearGradient
             colors={colors.gradient.card}
             style={styles.profileButton}>
             <Icon name="account" size={24} color={colors.primary} />
-          </LinearGradient>
+          </LinearGradient> */}
         </View>
 
         {/* Total EMI Card */}
