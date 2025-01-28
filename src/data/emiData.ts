@@ -169,25 +169,40 @@ class EMIDataStore {
         throw new Error('Invalid date values');
       }
 
+      // Reset time parts for accurate comparison
+      startDate = new Date(startDate);
+      startDate.setHours(0, 0, 0, 0);
+      today = new Date(today);
+      today.setHours(0, 0, 0, 0);
+
       // If today is before start date, no EMIs paid
-      if (isAfter(startDate, today)) {
+      if (today < startDate) {
         return 0;
       }
 
-      // Calculate months since start date (including start month)
-      const monthsSinceStart = differenceInMonths(today, startDate);
-      
-      // Get the date for this month's EMI
-      const thisMonthEMIDate = new Date(today.getFullYear(), today.getMonth(), startDate.getDate());
-      
-      // If we haven't reached EMI day in current month, one less EMI is paid
-      const isAfterEMIDay = today >= thisMonthEMIDate;
-      
-      // Start date counts as first EMI
-      // If today is after EMI day, count current month's EMI as paid
-      const emisPaid = isAfterEMIDay ? monthsSinceStart + 1 : monthsSinceStart;
+      // Check if we've passed the start date (first EMI)
+      let emisPaid = today >= startDate ? 1 : 0;
 
-      return Math.max(0, emisPaid);
+      // For each subsequent month until today, check if we've passed the EMI date
+      let currentDate = startDate;
+      while (true) {
+        // Move to next month's EMI date
+        currentDate = addMonths(currentDate, 1);
+        
+        // If we've moved past today's month, stop counting
+        if (currentDate.getFullYear() > today.getFullYear() || 
+            (currentDate.getFullYear() === today.getFullYear() && 
+             currentDate.getMonth() > today.getMonth())) {
+          break;
+        }
+
+        // If we've passed this EMI date, count it
+        if (today >= currentDate) {
+          emisPaid++;
+        }
+      }
+
+      return emisPaid;
     } catch (error) {
       console.error('Error calculating EMIs paid:', error);
       return 0;
@@ -206,24 +221,13 @@ class EMIDataStore {
         throw new Error('Start date is missing for EMI: ' + emi.id);
       }
 
-      // Parse and validate start date
       const startDate = new Date(emi.startDate);
       if (isNaN(startDate.getTime())) {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Calculate next payment date (start date counts as first payment)
-      let nextPaymentDate = addMonths(startDate, currentEMI);
-      nextPaymentDate.setHours(0, 0, 0, 0);
-
-      // If next payment date is in the past, move it forward until it's in the future
-      while (nextPaymentDate < today) {
-        nextPaymentDate = addMonths(nextPaymentDate, 1);
-      }
-
+      // Simply add months to start date based on EMIs paid
+      const nextPaymentDate = addMonths(startDate, currentEMI);
       return format(nextPaymentDate, 'yyyy-MM-dd');
     } catch (error) {
       console.error('Error calculating next payment date:', error);
