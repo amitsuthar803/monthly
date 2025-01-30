@@ -169,35 +169,40 @@ class EMIDataStore {
         throw new Error('Invalid date values');
       }
 
-      // Reset time parts for accurate comparison
+      // Set start date to beginning of day and today to its actual time
       startDate = new Date(startDate);
       startDate.setHours(0, 0, 0, 0);
-      today = new Date(today);
-      today.setHours(0, 0, 0, 0);
+      today = new Date(today); // Keep actual time for today
 
       // If today is before start date, no EMIs paid
       if (today < startDate) {
         return 0;
       }
 
-      // Check if we've passed the start date (first EMI)
-      let emisPaid = today >= startDate ? 1 : 0;
+      // For first EMI, check if we've passed the entire day
+      const firstEMIEndDay = new Date(startDate);
+      firstEMIEndDay.setHours(23, 59, 59, 999);
+      let emisPaid = today > firstEMIEndDay ? 1 : 0;
 
       // For each subsequent month until today, check if we've passed the EMI date
       let currentDate = startDate;
       while (true) {
-        // Move to next month's EMI date
+        // Move to next month's EMI date and set to end of day
         currentDate = addMonths(currentDate, 1);
-        
+        const emiEndDay = new Date(currentDate);
+        emiEndDay.setHours(23, 59, 59, 999);
+
         // If we've moved past today's month, stop counting
-        if (currentDate.getFullYear() > today.getFullYear() || 
-            (currentDate.getFullYear() === today.getFullYear() && 
-             currentDate.getMonth() > today.getMonth())) {
+        if (
+          currentDate.getFullYear() > today.getFullYear() ||
+          (currentDate.getFullYear() === today.getFullYear() &&
+            currentDate.getMonth() > today.getMonth())
+        ) {
           break;
         }
 
-        // If we've passed this EMI date, count it
-        if (today >= currentDate) {
+        // If we've passed this EMI's end of day, count it
+        if (today > emiEndDay) {
           emisPaid++;
         }
       }
@@ -354,7 +359,7 @@ class EMIDataStore {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       // Get current month and year
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
