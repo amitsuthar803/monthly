@@ -16,6 +16,10 @@ export interface EMI {
   startDate: string;
   tenure: number;
   interestRate: number;
+  status?: 'active' | 'completed';
+  currentEMI?: number;
+  lastPaymentDate?: string;
+  lastUpdated?: string;
 }
 
 export interface EMIWithStatus extends EMI {
@@ -39,6 +43,7 @@ export interface NewEMI {
 class EMIDataStore {
   private emis: EMI[] = [];
   private initialized = false;
+  private listeners: (() => void)[] = [];
 
   constructor() {
     this.loadFromFirestore();
@@ -57,6 +62,10 @@ class EMIDataStore {
           startDate: data.startDate || new Date().toISOString().split('T')[0],
           tenure: Number(data.tenure) || 0,
           interestRate: Number(data.interestRate) || 0,
+          status: data.status,
+          currentEMI: data.currentEMI,
+          lastPaymentDate: data.lastPaymentDate,
+          lastUpdated: data.lastUpdated,
         };
       });
       this.initialized = true;
@@ -126,6 +135,10 @@ class EMIDataStore {
         startDate: data?.startDate || new Date().toISOString(),
         tenure: Number(data?.tenure) || 0,
         interestRate: Number(data?.interestRate) || 0,
+        status: data?.status,
+        currentEMI: data?.currentEMI,
+        lastPaymentDate: data?.lastPaymentDate,
+        lastUpdated: data?.lastUpdated,
       };
     } catch (error) {
       console.error('Error getting EMI:', error);
@@ -134,17 +147,34 @@ class EMIDataStore {
   }
 
   // Local state management methods
+  addListener(callback: () => void) {
+    this.listeners.push(callback);
+    return () => {
+      const index = this.listeners.indexOf(callback);
+      if (index > -1) {
+        this.listeners.splice(index, 1);
+      }
+    };
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach(callback => callback());
+  }
+
   updateLocalEMI(emi: EMI): void {
     const index = this.emis.findIndex(e => e.id === emi.id);
     if (index !== -1) {
       this.emis[index] = emi;
+      this.notifyListeners();
     } else {
       this.emis.push(emi);
+      this.notifyListeners();
     }
   }
 
   removeLocalEMI(id: string): void {
     this.emis = this.emis.filter(emi => emi.id !== id);
+    this.notifyListeners();
   }
 
   /**
@@ -267,6 +297,28 @@ class EMIDataStore {
   }
 
   /**
+   * Checks if an EMI has started
+   * @param emi EMI to check
+   * @returns boolean indicating if EMI has started
+   */
+  private hasEMIStarted(emi: EMI): boolean {
+    try {
+      if (!emi.startDate) return false;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);  // Set to start of day
+      
+      const startDate = new Date(emi.startDate);
+      startDate.setHours(0, 0, 0, 0);  // Set to start of day
+
+      return startDate <= today;
+    } catch (error) {
+      console.error('Error checking if EMI has started:', error);
+      return false;
+    }
+  }
+
+  /**
    * Gets EMI with current status and progress
    * @param emi Base EMI details
    * @returns EMI with calculated status
@@ -285,16 +337,19 @@ class EMIDataStore {
         throw new Error('Invalid start date for EMI: ' + emi.id);
       }
 
-      const emisPaid = this.calculateEMIsPaid(startDate, today);
+      // Use currentEMI from EMI object if it exists (manual payments), otherwise calculate
+      const currentEMI = emi.currentEMI !== undefined ? 
+        Number(emi.currentEMI) : 
+        Math.min(this.calculateEMIsPaid(startDate, today), Number(emi.tenure) || 0);
+
       const tenure = Number(emi.tenure) || 0;
       const emiAmount = Number(emi.emiAmount) || 0;
 
       // Ensure all calculations use numbers with fallbacks to 0
-      const currentEMI = Math.min(emisPaid, tenure);
       const remainingEMIs = Math.max(0, tenure - currentEMI);
       const totalPaid = currentEMI * emiAmount;
       const nextPaymentDate = this.getNextPaymentDate(emi, currentEMI);
-      const lastPaymentDate = this.getLastPaymentDate(emi);
+      const lastPaymentDate = emi.lastPaymentDate || this.getLastPaymentDate(emi);
       const status = currentEMI >= tenure ? 'completed' : 'active';
 
       // Sync status with database if it has changed
@@ -315,9 +370,9 @@ class EMIDataStore {
       return {
         ...emi,
         nextPaymentDate: format(new Date(), 'yyyy-MM-dd'),
-        lastPaymentDate: format(new Date(), 'yyyy-MM-dd'),
+        lastPaymentDate: emi.lastPaymentDate || format(new Date(), 'yyyy-MM-dd'),
         remainingEMIs: Number(emi.tenure) || 0,
-        currentEMI: 0,
+        currentEMI: emi.currentEMI || 0,
         status: 'active',
         totalPaid: 0,
       };
@@ -476,6 +531,130 @@ class EMIDataStore {
     } catch (error) {
       console.error('Error calculating current month paid amount:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Checks if an EMI is paid for the current month
+   * @param emi EMI to check
+   * @returns boolean indicating if EMI is paid for current month
+   */
+  isEMIPaidForCurrentMonth(emi: EMI): boolean {
+    try {
+      if (!emi?.lastPaymentDate) return false;
+
+      const today = new Date();
+      const lastPaymentDate = new Date(emi.lastPaymentDate);
+
+      // Check if payment was made in current month and year
+      return (
+        lastPaymentDate.getMonth() === today.getMonth() &&
+        lastPaymentDate.getFullYear() === today.getFullYear()
+      );
+    } catch (error) {
+      console.error('Error checking if EMI is paid for current month:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Manually marks an EMI as paid for the current month
+   * @param emiId ID of the EMI to mark as paid
+   * @returns Promise<boolean> indicating success
+   */
+  async markEMIAsPaid(emiId: string): Promise<boolean> {
+    try {
+      const emi = this.emis.find(e => e.id === emiId);
+      if (!emi) throw new Error('EMI not found');
+
+      // Check if EMI has started
+      if (!this.hasEMIStarted(emi)) {
+        throw new Error('EMI has not started yet');
+      }
+
+      // Get current status before marking as paid
+      const currentStatus = this.getEMIWithStatus(emi);
+
+      // Check if already paid for this month
+      if (this.isEMIPaidForCurrentMonth(emi)) {
+        throw new Error('EMI is already paid for this month');
+      }
+
+      // Check if next payment is due
+      const nextPaymentDate = new Date(currentStatus.nextPaymentDate);
+      const today = new Date();
+      
+      // Can only pay if we're in the same month as next payment date
+      if (nextPaymentDate.getMonth() !== today.getMonth() || 
+          nextPaymentDate.getFullYear() !== today.getFullYear()) {
+        throw new Error('Next EMI payment is not due yet');
+      }
+
+      if (currentStatus.currentEMI >= Number(emi.tenure)) {
+        throw new Error('EMI is already fully paid');
+      }
+
+      const now = new Date();
+      const updates: any = {
+        lastPaymentDate: now.toISOString(),
+        lastUpdated: now.toISOString(),
+        currentEMI: currentStatus.currentEMI + 1,
+      };
+
+      // If this will be the last EMI, mark as completed
+      if (currentStatus.currentEMI + 1 >= Number(emi.tenure)) {
+        updates.status = 'completed';
+      }
+
+      // Update in Firebase
+      await emisCollection.doc(emiId).update(updates);
+
+      // Update local state immediately and notify listeners
+      const updatedEmi = {...emi, ...updates};
+      this.updateLocalEMI(updatedEmi);
+
+      return true;
+    } catch (error) {
+      console.error('Error marking EMI as paid:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Checks if an EMI is due today
+   * @param emi EMI to check
+   * @returns boolean indicating if EMI is due today
+   */
+  isDueToday(emi: EMI): boolean {
+    try {
+      if (!emi.startDate) return false;
+
+      // If EMI hasn't started yet, it's not due
+      if (!this.hasEMIStarted(emi)) {
+        return false;
+      }
+
+      const today = new Date();
+      const startDate = new Date(emi.startDate);
+
+      // Get current month and year
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      // Get the EMI date for current month
+      const status = this.getEMIWithStatus(emi);
+      const nextPaymentDate = new Date(status.nextPaymentDate);
+
+      // Check if next payment date is today
+      return (
+        nextPaymentDate.getDate() === today.getDate() &&
+        nextPaymentDate.getMonth() === currentMonth &&
+        nextPaymentDate.getFullYear() === currentYear &&
+        !this.isEMIPaidForCurrentMonth(emi)
+      );
+    } catch (error) {
+      console.error('Error checking if EMI is due today:', error);
+      return false;
     }
   }
 }

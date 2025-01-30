@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {emiDataStore} from '../data/emiData';
 import {useRoute, useNavigation} from '@react-navigation/native';
@@ -15,7 +16,18 @@ const EMIDetailsScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const {emiId} = route.params as {emiId: string};
-  const emi = emiDataStore.getEMIById(emiId);
+  const [emi, setEmi] = useState(emiDataStore.getEMIById(emiId));
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+
+  useEffect(() => {
+    // Subscribe to EMI updates
+    const unsubscribe = emiDataStore.addListener(() => {
+      setEmi(emiDataStore.getEMIById(emiId));
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [emiId]);
 
   const handleDelete = () => {
     Alert.alert(
@@ -41,6 +53,30 @@ const EMIDetailsScreen = () => {
         },
       ],
     );
+  };
+
+  const handleMarkPaid = async () => {
+    if (isMarkingPaid) return;
+    
+    try {
+      setIsMarkingPaid(true);
+      await emiDataStore.markEMIAsPaid(emiId);
+      Alert.alert('Success', 'EMI marked as paid successfully');
+    } catch (error) {
+      console.error('Error marking EMI as paid:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to mark EMI as paid. Please try again.');
+    } finally {
+      setIsMarkingPaid(false);
+    }
+  };
+
+  const hasStarted = () => {
+    if (!emi?.startDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(emi.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    return startDate <= today;
   };
 
   if (!emi) {
@@ -156,9 +192,37 @@ const EMIDetailsScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <Icon name="trash-can-outline" size={20} color="#fff" />
-          <Text style={styles.deleteButtonText}>Delete EMI</Text>
+        {/* Only show button if EMI is active, has started, and not paid for current month */}
+        {emi.status === 'active' && hasStarted() && !emiDataStore.isEMIPaidForCurrentMonth(emi) ? (
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.markPaidButton]} 
+            onPress={handleMarkPaid}
+            disabled={isMarkingPaid}
+          >
+            {isMarkingPaid ? (
+              <ActivityIndicator color="#fff" size="small" style={styles.buttonIcon} />
+            ) : (
+              <Icon name="check-circle-outline" size={20} color="#fff" style={styles.buttonIcon} />
+            )}
+            <Text style={styles.actionButtonText}>
+              {isMarkingPaid ? 'Marking as Paid...' : 'Mark as Paid'}
+            </Text>
+          </TouchableOpacity>
+        ) : emi.status === 'active' && !hasStarted() ? (
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.markPaidButton]} 
+            disabled={true}
+          >
+            <Icon name="clock-outline" size={20} color="#fff" style={styles.buttonIcon} />
+            <Text style={[styles.actionButtonText, styles.disabledText]}>
+              EMI Not Started Yet
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete}>
+          <Icon name="trash-can-outline" size={20} color="#fff" style={styles.buttonIcon} />
+          <Text style={styles.actionButtonText}>Delete EMI</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -265,8 +329,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
-  deleteButton: {
-    backgroundColor: '#DC3545',
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -274,11 +337,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 20,
   },
-  deleteButtonText: {
+  markPaidButton: {
+    backgroundColor: '#4CAF50',
+  },
+  deleteButton: {
+    backgroundColor: '#DC3545',
+  },
+  actionButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  buttonIcon: {
+    marginRight: 4,
+  },
+  disabledText: {
+    opacity: 0.6,
   },
 });
 

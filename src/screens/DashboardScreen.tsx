@@ -30,24 +30,13 @@ const {width} = Dimensions.get('window');
 const DashboardScreen = () => {
   const navigation = useNavigation<DashboardScreenNavigationProp>();
   const [loading, setLoading] = useState(true);
-  const [upcomingEMIs, setUpcomingEMIs] = useState(
-    emiDataStore.getUpcomingEMIs() || [],
-  );
-  const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(
-    emiDataStore.getTotalMonthlyEMI() || 0,
-  );
-  const [currentMonthTotal, setCurrentMonthTotal] = useState(
-    emiDataStore.getCurrentMonthTotalEMI() || 0,
-  );
-  const [currentMonthPaid, setCurrentMonthPaid] = useState(
-    emiDataStore.getCurrentMonthPaidAmount() || 0,
-  );
-  const [totalEMIAmount, setTotalEMIAmount] = useState(
-    emiDataStore.getTotalEMIAmount() || 0,
-  );
-  const [totalPaidAmount, setTotalPaidAmount] = useState(
-    emiDataStore.getTotalPaidAmount() || 0,
-  );
+  const [activeEMIs, setActiveEMIs] = useState(emiDataStore.getActiveEMIs());
+  const [upcomingEMIs, setUpcomingEMIs] = useState(emiDataStore.getUpcomingEMIs());
+  const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(emiDataStore.getTotalMonthlyEMI());
+  const [currentMonthTotal, setCurrentMonthTotal] = useState(emiDataStore.getCurrentMonthTotalEMI());
+  const [currentMonthPaid, setCurrentMonthPaid] = useState(emiDataStore.getCurrentMonthPaidAmount());
+  const [totalEMIAmount, setTotalEMIAmount] = useState(emiDataStore.getTotalEMIAmount());
+  const [totalPaidAmount, setTotalPaidAmount] = useState(emiDataStore.getTotalPaidAmount());
 
   const formatAmount = (amount: number) => {
     return amount.toLocaleString('en-IN', {
@@ -107,7 +96,7 @@ const DashboardScreen = () => {
             <View style={styles.statItem}>
               <Icon name="arrow-up" size={20} color={colors.success} />
               <Text style={styles.statText}>Active EMIs</Text>
-              <Text style={styles.statValue}>{upcomingEMIs.length}</Text>
+              <Text style={styles.statValue}>{activeEMIs.length}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
@@ -124,37 +113,16 @@ const DashboardScreen = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = emisCollection.onSnapshot(
-      snapshot => {
-        try {
-          snapshot.docChanges().forEach(change => {
-            const emiData = change.doc.data();
-            const emi = {id: change.doc.id, ...emiData};
-
-            if (change.type === 'added' || change.type === 'modified') {
-              emiDataStore.updateLocalEMI(emi); 
-            } else if (change.type === 'removed') {
-              emiDataStore.removeLocalEMI(emi.id);
-            }
-          });
-
-          setUpcomingEMIs(emiDataStore.getUpcomingEMIs());
-          setTotalMonthlyEMI(emiDataStore.getTotalMonthlyEMI());
-          setCurrentMonthTotal(emiDataStore.getCurrentMonthTotalEMI());
-          setCurrentMonthPaid(emiDataStore.getCurrentMonthPaidAmount());
-          setTotalEMIAmount(emiDataStore.getTotalEMIAmount());
-          setTotalPaidAmount(emiDataStore.getTotalPaidAmount());
-          setLoading(false);
-        } catch (error) {
-          console.error('Error processing snapshot:', error);
-          setLoading(false);
-        }
-      },
-      error => {
-        console.error('Error fetching EMIs:', error);
-        setLoading(false);
-      },
-    );
+    const unsubscribe = emiDataStore.addListener(() => {
+      setActiveEMIs(emiDataStore.getActiveEMIs());
+      setUpcomingEMIs(emiDataStore.getUpcomingEMIs());
+      setTotalMonthlyEMI(emiDataStore.getTotalMonthlyEMI());
+      setCurrentMonthTotal(emiDataStore.getCurrentMonthTotalEMI());
+      setCurrentMonthPaid(emiDataStore.getCurrentMonthPaidAmount());
+      setTotalEMIAmount(emiDataStore.getTotalEMIAmount());
+      setTotalPaidAmount(emiDataStore.getTotalPaidAmount());
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, []);
